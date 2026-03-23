@@ -5,6 +5,8 @@ import config
 from dataset import get_dataloader
 from model import InputMethodModel
 from predict import predict_batch
+from tokenizer import JiebaTokenizer
+
 
 def evaluate(model, test_dataloader, device):
     top1_acc_count = 0
@@ -30,14 +32,11 @@ def run_evaluate():
     # 准备
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # 加载词表
-    vocab_list = []
-    with open(config.MODELS_DIR / "vocab.txt", "r", encoding="utf-8") as f:
-        for line in f:
-            vocab_list.append(line.strip())
+    # 加载 tokenizer
+    tokenizer = JiebaTokenizer.from_vocab(config.MODELS_DIR / "vocab.txt")
 
     # 加载模型
-    model = InputMethodModel(len(vocab_list)).to(device)
+    model = InputMethodModel(tokenizer.vocab_size).to(device)
     model.load_state_dict(torch.load(config.MODELS_DIR / "best.pt", map_location=device))
 
     # test数据集

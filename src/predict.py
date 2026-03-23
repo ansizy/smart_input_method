@@ -3,6 +3,8 @@ import torch
 
 import config
 from model import InputMethodModel
+from tokenizer import JiebaTokenizer
+
 
 def predict_batch(model, inputs, device):
     """
@@ -22,21 +24,17 @@ def predict_batch(model, inputs, device):
         top5_indexes_list = top5_indexes.tolist()
     return top5_indexes_list
 
-def predict(text, model, device, word2index, index2word):
+def predict(text, model, device, tokenizer):
 
-    # 分词
-    tokens = jieba.lcut(text)
-    indexes = []
-    for token in tokens:
-        if token in word2index:
-            indexes.append(word2index[token])
-        else:
-            indexes.append(word2index["unk"])
+    # 分词编码
+    indexes = tokenizer.encode(text)
+
     input_tensor = torch.tensor(indexes, dtype=torch.long).reshape(1, -1)
+    # 预测
     top5_indexes_list = predict_batch(model, input_tensor, device)
     top5_tokens = []
     for index in top5_indexes_list[0]:
-        top5_tokens.append(index2word[index])
+        top5_tokens.append(tokenizer.index2word[index])
     return top5_tokens
 
 def run_predict():
@@ -45,15 +43,10 @@ def run_predict():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 加载词表
-    vocab_list = []
-    with open(config.MODELS_DIR / "vocab.txt", "r", encoding="utf-8") as f:
-        for line in f:
-            vocab_list.append(line.strip())
-    word2index = {word: index for index, word in enumerate(vocab_list)}
-    index2word = {index: word for index, word in enumerate(vocab_list)}
+    tokenizer = JiebaTokenizer.from_vocab(config.MODELS_DIR / "vocab.txt")
 
     # 加载模型
-    model = InputMethodModel(len(vocab_list)).to(device)
+    model = InputMethodModel(tokenizer.vocab_size).to(device)
     model.load_state_dict(torch.load(config.MODELS_DIR / "best.pt", map_location=device))
 
 
@@ -70,7 +63,7 @@ def run_predict():
         else:
             input_history += user_input
             print(f"历史输入: {input_history}")
-            top5_tokens = predict(input_history, model, device, word2index, index2word)
+            top5_tokens = predict(input_history, model, device, tokenizer)
             print(top5_tokens)
 
 

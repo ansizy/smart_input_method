@@ -4,26 +4,20 @@
 """
 import jieba
 import pandas as pd
-import os
 
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 import config
+from tokenizer import JiebaTokenizer
+
 
 # 构建数据集 训练集, 测试集
-def build_dataset(word2index, sentences):
+def build_dataset(sentences, tokenizer):
     # 索引化的 sentences
     indexed_sentences = []
     for sentence in tqdm(sentences, desc="索引化"):
-        words = jieba.lcut(sentence)
-        indexed_sentence = []
-        for word in words:
-            if word in word2index:
-                indexed_sentence.append(word2index[word])
-            else:
-                indexed_sentence.append(word2index['unk'])
-        indexed_sentences.append(indexed_sentence)
+        indexed_sentences.append(tokenizer.encode(sentence))
 
     # 构建 inputs targets
     windows_size = 5
@@ -38,6 +32,7 @@ def build_dataset(word2index, sentences):
             p += 1
 
     return dataset
+
 
 def process(raw_data_path):
     # 1 读文件
@@ -55,42 +50,23 @@ def process(raw_data_path):
     train_sentences, test_sentences = train_test_split(sentences, train_size=0.8)
 
     # 4 构建词表
-    vocab_set = set()
-    for sentence in tqdm(train_sentences, desc="构建词表"):
-        # 切词并加入集合去重
-        vocab_set.update(jieba.lcut(sentence))
-
-    # 加入 未知字符 'unk'
-    vocab_list = ['unk'] + list(vocab_set)
-    # print(len(vocab_list))
-    # 5 保存词表
-    with open(config.MODELS_DIR / 'vocab.txt', 'w', encoding='utf-8') as f:
-        f.write('\n'.join(vocab_list))
+    JiebaTokenizer.build_vocab(train_sentences, config.MODELS_DIR / 'vocab.txt')
 
     # 6 构建训练集 索引化 --> 构建 inputs targets
-    word2index = {}
-    for index, word in enumerate(vocab_list):
-        word2index[word] = index
+    tokenizer = JiebaTokenizer.from_vocab(config.MODELS_DIR / 'vocab.txt')
 
-    train_dataset = build_dataset(word2index, train_sentences)
+    train_dataset = build_dataset(train_sentences, tokenizer)
 
     # 7 保存训练集
     pd.DataFrame(train_dataset).to_json(config.PROCESSED_DATA_DIR / "train.jsonl", orient='records', lines=True)
 
     # 8 构建测试集
-    test_dataset = build_dataset(word2index, test_sentences)
+    test_dataset = build_dataset(test_sentences, tokenizer)
 
     # 9 保存测试集
     pd.DataFrame(test_dataset).to_json(config.PROCESSED_DATA_DIR / "test.jsonl", orient='records', lines=True)
 
     print("数据处理完成")
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
