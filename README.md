@@ -1,5 +1,32 @@
 # smart_input_method
-智能输入法，通过普通 ```rnn``` 网络做一款输入法
+智能输入法，通过普通 ```rnn``` 网络做一款输入法。根据输入的历史预测下一个要输入的词
+## 效果
+![img.png](img.png)
+```python
+"""
+欢迎使用smart_input_model(输入 q或quit 退出)
+>我们
+历史输入: 我们
+Building prefix dict from the default dictionary ...
+Loading model from cache C:\Users\MECHREVO\AppData\Local\Temp\jieba.cache
+Loading model cost 0.558 seconds.
+Prefix dict has been built successfully.
+['的', '一起', '需要', '都', '会']
+>一起
+历史输入: 我们一起
+['熬夜', '解决问题', '工作', '聊天', '讨论']
+>工作
+历史输入: 我们一起工作
+['。', '，', '吧', '和', '的']
+>
+请输入内容
+>。
+历史输入: 我们一起工作。
+['你', '谢谢您', '那', '谢谢', '对']
+>q
+退出!
+"""
+```
 ## 整体目录结构
 ```python
 """
